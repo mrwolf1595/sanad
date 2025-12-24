@@ -53,6 +53,13 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const customFont = await pdfDoc.embedFont(fontBytes)
 
   const form = pdfDoc.getForm()
+  
+  // Enable needAppearances to let PDF viewers regenerate field appearances
+  // This preserves the alignment/formatting from the template
+  form.acroForm.dict.set(
+    pdfDoc.context.obj('NeedAppearances'),
+    pdfDoc.context.obj(true)
+  )
 
   // Helper to process text - keep data as is from database
   const processText = (text: string): string => {
@@ -88,7 +95,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     }
   }
 
-  // Helper to set text field with Arabic font support
+  // Helper to set text field - keep template formatting by not regenerating appearances
   const setField = (name: string, value: string | number | null | undefined) => {
     try {
       const field = form.getTextField(name)
@@ -98,10 +105,8 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
         // Keep text as is from database (only convert Arabic numerals)
         text = processText(text)
         
-        // Set text with Arabic font (required to avoid WinAnsi error)
+        // Only set text - don't call updateAppearances to preserve template settings
         field.setText(text)
-        field.setAlignment(TextAlignment.Center)
-        field.updateAppearances(customFont)
       }
     } catch (e) {
       // console.warn(`Field ${name} not found in PDF`)
