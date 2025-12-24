@@ -11,182 +11,200 @@ interface ReceiptData {
 export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array> {
   const { receipt, organization } = data
 
+  // DEBUG: Log the payment method
+  console.log('🔍 Generating PDF for receipt:', receipt.receipt_number)
+  console.log('   Payment method:', receipt.payment_method)
+  console.log('   Recipient:', receipt.recipient_name)
+
   const templatePath = path.join(process.cwd(), 'public/templates/voucher.pdf')
   const templateBytes = fs.readFileSync(templatePath)
 
   const pdfDoc = await PDFDocument.load(templateBytes)
+  pdfDoc.registerFontkit(fontkit)
 
-  const acroForm = pdfDoc.catalog.lookup(PDFName.of('AcroForm'))
-  if (!(acroForm instanceof PDFDict)) {
-    return await pdfDoc.save()
+  // Load Arabic font - using Cairo for better readability
+  const fontPath = path.join(process.cwd(), 'public/fonts/Cairo-Regular.ttf')
+  const fontBytes = fs.readFileSync(fontPath)
+  const customFont = await pdfDoc.embedFont(fontBytes)
+
+  const form = pdfDoc.getForm()
+
+  // Helper to process text - keep data as is from database
+  const processText = (text: string): string => {
+    if (!text) return ''
+
+    // Only convert Eastern Arabic numerals (٠-٩) to Western (0-9)
+    // Keep all other text exactly as stored in database
+    return text.replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
   }
 
-  // Ensure NeedAppearances is true
-  acroForm.set(PDFName.of('NeedAppearances'), PDFBool.True)
+  // Helper to format date in Arabic format
+  const formatArabicDate = (dateStr: string): string => {
+    try {
+      const date = new Date(dateStr)
+      const day = date.getDate().toString().padStart(2, '0')
+      const month = (date.getMonth() + 1).toString().padStart(2, '0')
+      const year = date.getFullYear()
+      return `${day}-${month}-${year}`
+    } catch (e) {
+      return dateStr
+    }
+  }
 
-  // --- Helpers ---
+  // Helper to format time in Arabic format
+  const formatArabicTime = (dateStr: string): string => {
+    try {
+      const date = new Date(dateStr)
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      return `${hours}:${minutes}`
+    } catch (e) {
+      return ''
+    }
+  }
 
-  // Helper to find a field dictionary by name
-  const findFieldDict = (fieldsArray: PDFArray | undefined, targetName: string): PDFDict | undefined => {
-    if (!fieldsArray) return undefined
+  // Helper to set text field with Arabic font support
+  const setField = (name: string, value: string | number | null | undefined) => {
+    try {
+      const field = form.getTextField(name)
+      if (field) {
+        let text = value?.toString() || ''
 
-    for (let i = 0; i < fieldsArray.size(); i++) {
-      const field = fieldsArray.lookup(i)
-      if (field instanceof PDFDict) {
-        const name = field.lookup(PDFName.of('T'))
-        if (name instanceof PDFString && name.decodeText() === targetName) {
-          return field
+        // Keep text as is from database (only convert Arabic numerals)
+        text = processText(text)
+
+        // Set text with Arabic font (required to avoid WinAnsi error)
+        field.setText(text)
+        field.setAlignment(TextAlignment.Center)
+        field.updateAppearances(customFont)
+      }
+    } catch (e) {
+      // console.warn(`Field ${name} not found in PDF`)
+    }
+  }
+
+  // Map fields
+  setField('Name_Of_Company', organization.name_ar)
+  setField('Company_description', organization.description)
+  setField('Type_Of_Doc', receipt.receipt_type === 'receipt' ? 'سند قبض' : 'سند صرف')
+
+  setField('VAT_Num_Right', organization.tax_number)
+  setField('VAT_Num_Left', organization.tax_number)
+  setField('CR_Num_Right', organization.commercial_registration)
+  setField('CR_Num_Left', organization.commercial_registration)
+
+  setField('Sanaad_Id', receipt.receipt_number)
+  setField('Sanaad_Date', formatArabicDate(receipt.date))
+  setField('Sanaad_Time', formatArabicTime(receipt.created_at))
+
+  // Payment Method Translation
+  const paymentMethodMap: Record<string, string> = {
+    cash: 'نقدي',
+    check: 'شيك',
+    bank_transfer: 'حوالة بنكية'
+  }
+  setField('Payment_Methode', paymentMethodMap[receipt.payment_method || 'cash'] || receipt.payment_method)
+
+  // From/To Logic
+  if (receipt.receipt_type === 'receipt') {
+    setField('From_Name', receipt.recipient_name)
+    setField('To_Name', organization.name_ar)
+    setField('National_Id_From', receipt.national_id_from)
+    setField('National_Id_To', receipt.national_id_to) // Or organization ID if available
+  } else {
+    setField('From_Name', organization.name_ar)
+    setField('To_Name', receipt.recipient_name)
+    setField('National_Id_From', receipt.national_id_from) // Or organization ID
+    setField('National_Id_To', receipt.national_id_to)
+  }
+
+  setField('Purpose', receipt.description)
+  setField('Amount_Without_VAT', receipt.amount.toFixed(2))
+  setField('VAT', receipt.vat_amount?.toFixed(2) || '0.00')
+  setField('Total', receipt.total_amount?.toFixed(2) || receipt.amount.toFixed(2))
+  setField('Amount_With_VAT', receipt.total_amount?.toFixed(2) || receipt.amount.toFixed(2))
+
+  setField('Address', organization.address)
+  setField('Phone', organization.phone)
+
+  // Conditional Fields
+  if (receipt.payment_method === 'cash') {
+    setField('Cheque_Number', '')
+    setField('Transfer_Number', '')
+    setField('Bank_Name_Bank', '')
+    setField('Bank_Name_Transfer', '')
+    setField('Cheque_Number_Label', '')
+    setField('Transfer_Number_Label', '')
+    setField('Bank_Name_Label', '')
+    setField('Bank_Name_Trans_Label', '')
+  } else if (receipt.payment_method === 'check') {
+    setField('Cheque_Number', receipt.cheque_number)
+    setField('Bank_Name_Bank', receipt.bank_name)
+    setField('Transfer_Number', '')
+    setField('Bank_Name_Transfer', '')
+    // Keep labels for Check
+    setField('Transfer_Number_Label', '')
+    setField('Bank_Name_Trans_Label', '')
+  } else if (receipt.payment_method === 'bank_transfer') {
+    setField('Transfer_Number', receipt.transfer_number)
+    setField('Bank_Name_Transfer', receipt.bank_name)
+    setField('Cheque_Number', '')
+    setField('Bank_Name_Bank', '')
+    // Keep labels for Transfer
+    setField('Cheque_Number_Label', '')
+    setField('Bank_Name_Label', '') // Assuming Bank_Name_Label is for Check's bank
+  }
+
+  // Handle Images (Logo and Stamp)
+  if (organization.logo_url) {
+    try {
+      const logoImageBytes = await fetch(organization.logo_url).then(res => res.arrayBuffer())
+      // Determine format (png or jpg)
+      const isPng = organization.logo_url.toLowerCase().endsWith('.png')
+      const logoImage = isPng ? await pdfDoc.embedPng(logoImageBytes) : await pdfDoc.embedJpg(logoImageBytes)
+
+      try {
+        const logoField = form.getButton('Logo_af_image')
+        if (logoField) {
+          logoField.setImage(logoImage)
         }
-        // Recursive check
-        const kids = field.lookup(PDFName.of('Kids'))
-        if (kids instanceof PDFArray) {
-          const found = findFieldDict(kids, targetName)
-          if (found) return found
+      } catch (e) {
+        // Ignore
+      }
+    } catch (e) {
+      console.error('Error embedding logo:', e)
+    }
+  }
+
+  if (organization.stamp_url) {
+    try {
+      const stampImageBytes = await fetch(organization.stamp_url).then(res => res.arrayBuffer())
+      const isPng = organization.stamp_url.toLowerCase().endsWith('.png')
+      const stampImage = isPng ? await pdfDoc.embedPng(stampImageBytes) : await pdfDoc.embedJpg(stampImageBytes)
+
+      try {
+        const stampField = form.getButton('Stamp_af_image')
+        if (stampField) {
+          stampField.setImage(stampImage)
         }
+      } catch (e) {
+        // Ignore
       }
-    }
-    return undefined
-  }
-
-  // Helper to set value (and clear appearance)
-  const setFieldValue = (rootFields: PDFArray, fieldName: string, value: string) => {
-    const field = findFieldDict(rootFields, fieldName)
-    if (field) {
-      field.set(PDFName.of('V'), PDFHexString.fromText(value))
-      // Clear AP
-      field.delete(PDFName.of('AP'))
-      const kids = field.lookup(PDFName.of('Kids'))
-      if (kids instanceof PDFArray) {
-        for (let k = 0; k < kids.size(); k++) {
-          const kid = kids.lookup(k)
-          if (kid instanceof PDFDict) kid.delete(PDFName.of('AP'))
-        }
-      }
+    } catch (e) {
+      console.error('Error embedding stamp:', e)
     }
   }
 
-  // Helper to set visibility
-  const setVisibility = (rootFields: PDFArray, fieldName: string, isVisible: boolean) => {
-    const field = findFieldDict(rootFields, fieldName)
-    if (!field) return
+  // Don't flatten to allow JavaScript in Payment_Methode field to execute
+  // The JavaScript code in the PDF will handle field visibility/behavior
+  // form.flatten()
 
-    // Function to update flags on a dictionary (Field or Merged Widget)
-    const updateFlags = (dict: PDFDict) => {
-      const F = dict.lookup(PDFName.of('F'))
-      let currentFlags = (F instanceof PDFNumber) ? F.asNumber() : 0
-      // Default to Print(4) if 0? Usually 4 is standard. 
-      if (currentFlags === 0) currentFlags = 4;
+  // Do NOT set NeedAppearances again at the end - already set at beginning
+  // This matches the test script behavior
 
-      // Hidden bit = 2 (1-based bit 2? Value 2. bit 1 is 1, bit 2 is 2)
-      // PDF Spec: Bit 2 (Hidden)
-
-      if (isVisible) {
-        // Clear Hidden (bit 2) and NoView (bit 6 -> 32)
-        currentFlags = currentFlags & ~2 & ~32
-      } else {
-        // Set Hidden (bit 2)
-        currentFlags = currentFlags | 2
-      }
-      dict.set(PDFName.of('F'), PDFNumber.of(currentFlags))
-    }
-
-    // If field is a widget (merged), update it.
-    // If field has kids (widgets), update them.
-    // Usually checking for Subtype Widget or just blindly applying to Kids works.
-
-    const subtype = field.lookup(PDFName.of('Subtype'))
-    if (subtype === PDFName.of('Widget')) {
-      updateFlags(field)
-    }
-
-    const kids = field.lookup(PDFName.of('Kids'))
-    if (kids instanceof PDFArray) {
-      for (let k = 0; k < kids.size(); k++) {
-        const kid = kids.lookup(k)
-        if (kid instanceof PDFDict) updateFlags(kid)
-      }
-    } else {
-      // Fallback: if no kids and no explicit Widget subtype (some fields are implied),
-      // update the field dict itself as it holds the flags.
-      updateFlags(field)
-    }
-  }
-
-  const rootFields = acroForm.lookup(PDFName.of('Fields'))
-  if (rootFields instanceof PDFArray) {
-
-    // 1. Set Data
-    const payMethod = receipt.payment_method || 'cash'
-    const payMap: Record<string, string> = { cash: 'نقداً', check: 'شيك', bank_transfer: 'حوالة بنكية' }
-
-    const fieldsToSet: Record<string, any> = {
-      'Name_Of_Company': organization.name_ar,
-      'Company_description': organization.description,
-      'Address': organization.address,
-      'Phone': organization.phone,
-      'VAT_Num_Right': organization.tax_number,
-      'VAT_Num_Left': organization.tax_number,
-      'CR_Num_Right': organization.commercial_registration,
-      'CR_Num_Left': organization.commercial_registration,
-      'Sanaad_Id': receipt.receipt_number,
-      'Sanaad_Date': receipt.date,
-      'Sanaad_Time': receipt.created_at,
-      'Amount_Without_VAT': receipt.amount,
-      'Purpose': receipt.description,
-      'VAT': receipt.vat_amount || 0,
-      'Total': receipt.total_amount || receipt.amount,
-      'Amount_With_VAT': receipt.total_amount || receipt.amount,
-      'Type_Of_Doc': (receipt.receipt_type === 'receipt') ? 'سند قبض' : 'سند صرف',
-      'Payment_Methode': payMap[payMethod] || payMethod
-    }
-
-    if (receipt.receipt_type === 'receipt') {
-      fieldsToSet['From_Name'] = receipt.recipient_name
-      fieldsToSet['To_Name'] = organization.name_ar
-      fieldsToSet['National_Id_From'] = receipt.national_id_from
-      fieldsToSet['National_Id_To'] = receipt.national_id_to
-    } else {
-      fieldsToSet['From_Name'] = organization.name_ar
-      fieldsToSet['To_Name'] = receipt.recipient_name
-      fieldsToSet['National_Id_From'] = receipt.national_id_from
-      fieldsToSet['National_Id_To'] = receipt.national_id_to
-    }
-
-    // Set Values
-    Object.entries(fieldsToSet).forEach(([key, val]) => {
-      if (val != null) {
-        setFieldValue(rootFields, key, String(val))
-      }
-    })
-
-    // Set Conditional Values (Check/Transfer numbers)
-    if (payMethod === 'check') {
-      setFieldValue(rootFields, 'Cheque_Number', String(receipt.cheque_number || ''))
-      setFieldValue(rootFields, 'Bank_Name_Bank', String(receipt.bank_name || ''))
-    } else if (payMethod === 'bank_transfer') {
-      setFieldValue(rootFields, 'Transfer_Number', String(receipt.transfer_number || ''))
-      setFieldValue(rootFields, 'Bank_Name_Transfer', String(receipt.bank_name || ''))
-    }
-
-    // 2. Handle Visibility Logic (Replicating the PDF JS Logic)
-    const bankFields = ["Bank_Name_Bank", "Bank_Name_Label", "Cheque_Number", "Cheque_Number_Label"];
-    const transferFields = ["Bank_Name_Transfer", "Bank_Name_Trans_Label", "Transfer_Number", "Transfer_Number_Label"];
-
-    let showBank = false;
-    let showTransfer = false;
-
-    // Check payment method (using English keys from DB or mapped values)
-    // DB: cash, check, bank_transfer
-    if (payMethod === 'check' || payMethod === 'Cheque' || payMethod === 'شيك') {
-      showBank = true;
-    } else if (payMethod === 'bank_transfer' || payMethod === 'Transfer' || payMethod === 'حوالة بنكية') {
-      showTransfer = true;
-    }
-
-    // Apply visibility
-    bankFields.forEach(f => setVisibility(rootFields, f, showBank))
-    transferFields.forEach(f => setVisibility(rootFields, f, showTransfer))
-  }
-
-  return await pdfDoc.save()
+  // Save with options to prevent automatic appearance updates by pdf-lib
+  return await pdfDoc.save({
+    updateFieldAppearances: false,
+    useObjectStreams: false
+  })
 }

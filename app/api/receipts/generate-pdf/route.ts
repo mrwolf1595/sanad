@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateReceiptPDF } from '@/lib/pdf/fillTemplate'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { receiptId } = await request.json()
@@ -66,12 +68,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if organization has a valid logo
+    if (!organization.logo_url || organization.logo_url === '' || organization.logo_url === 'PLACEHOLDER_LOGO_REQUIRED') {
+      return NextResponse.json(
+        { error: 'Organization logo is required. Please complete onboarding and upload a logo before generating receipts.' },
+        { status: 400 }
+      )
+    }
+
+    // DEBUG: Log receipt data
+    console.log('='.repeat(60))
+    console.log('📄 Generating PDF for receipt:', receipt.receipt_number)
+    console.log('   Type:', receipt.receipt_type)
+    console.log('   Payment method:', receipt.payment_method)
+    console.log('   Amount:', receipt.amount)
+    console.log('   Recipient:', receipt.recipient_name)
+    if (receipt.payment_method === 'check') {
+      console.log('   Bank:', receipt.bank_name)
+      console.log('   Cheque #:', receipt.cheque_number)
+    } else if (receipt.payment_method === 'bank_transfer') {
+      console.log('   Bank:', receipt.bank_name)
+      console.log('   Transfer #:', receipt.transfer_number)
+    }
+    console.log('='.repeat(60))
+
     // Generate PDF
     const pdfBytes = await generateReceiptPDF({
       receipt,
       organization,
       createdBy: userData.full_name,
     })
+    
+    console.log('✅ PDF generated successfully!')
+    console.log('='.repeat(60))
 
     // Upload PDF to Supabase Storage
     const fileName = `${userData.organization_id}/${receipt.receipt_number}-${Date.now()}.pdf`

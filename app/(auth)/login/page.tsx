@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/hooks/use-toast'
+import { AlertTriangle } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'البريد الإلكتروني غير صحيح' }),
@@ -20,10 +21,22 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
+  const [sessionExpired, setSessionExpired] = useState(false)
   const supabase = createClient()
+
+  // Check if redirected due to session expiration
+  useEffect(() => {
+    const reason = searchParams.get('reason')
+    if (reason === 'session_expired') {
+      setSessionExpired(true)
+      // Clean up the URL
+      router.replace('/login')
+    }
+  }, [searchParams, router])
 
   const {
     register,
@@ -88,15 +101,29 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 sm:space-y-2 px-4 sm:px-6">
-          <CardTitle className="text-xl sm:text-2xl font-bold text-center">
-            تسجيل الدخول
-          </CardTitle>
-          <CardDescription className="text-center text-sm sm:text-base">
-            أدخل بياناتك للوصول إلى حسابك
-          </CardDescription>
-        </CardHeader>
+      <div className="w-full max-w-md space-y-4">
+        {/* Session Expired Alert */}
+        {sessionExpired && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="font-semibold text-amber-800">انتهت الجلسة</h3>
+              <p className="text-sm text-amber-700 mt-1">
+                تم تسجيل خروجك تلقائياً بسبب عدم النشاط لمدة 15 دقيقة. يرجى تسجيل الدخول مرة أخرى.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <Card>
+          <CardHeader className="space-y-1 sm:space-y-2 px-4 sm:px-6">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-center">
+              تسجيل الدخول
+            </CardTitle>
+            <CardDescription className="text-center text-sm sm:text-base">
+              أدخل بياناتك للوصول إلى حسابك
+            </CardDescription>
+          </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4 px-4 sm:px-6">
             <div className="space-y-2">
@@ -137,7 +164,20 @@ export default function LoginPage() {
             </p>
           </CardFooter>
         </form>
-      </Card>
+        </Card>
+      </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">جاري التحميل...</div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   )
 }

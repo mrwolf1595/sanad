@@ -81,30 +81,29 @@ export function DashboardNav() {
                 <span className="sr-only">فتح القائمة</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[280px] sm:w-[320px] p-0">
+            <SheetContent side="right" className="w-[280px] sm:w-[320px] p-0 flex flex-col">
               <SheetHeader className="p-4 border-b">
                 <SheetTitle className="text-right">القائمة</SheetTitle>
               </SheetHeader>
-              <div className="flex flex-col h-full">
-                {/* Mobile Nav Links */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                  <NavLinks mobile />
-                </div>
-                
-                {/* Mobile Logout */}
-                <div className="p-4 border-t mt-auto safe-bottom">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setIsOpen(false)
-                      handleLogout()
-                    }} 
-                    className="w-full gap-2 justify-start"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    تسجيل الخروج
-                  </Button>
-                </div>
+              
+              {/* Mobile Nav Links */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                <NavLinks mobile />
+              </div>
+              
+              {/* Mobile Logout */}
+              <div className="p-4 border-t mt-auto">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsOpen(false)
+                    handleLogout()
+                  }} 
+                  className="w-full gap-2 justify-start"
+                >
+                  <LogOut className="h-5 w-5" />
+                  تسجيل الخروج
+                </Button>
               </div>
             </SheetContent>
           </Sheet>

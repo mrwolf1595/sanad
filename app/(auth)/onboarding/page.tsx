@@ -34,6 +34,7 @@ export default function OnboardingPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [existingOrgId, setExistingOrgId] = useState<string | null>(null)
+  const [existingLogoUrl, setExistingLogoUrl] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const supabase = useMemo(() => createClient(), [])
 
@@ -82,6 +83,7 @@ export default function OnboardingPage() {
         
         if (org) {
           setExistingOrgId(org.id)
+          setExistingLogoUrl(org.logo_url)
           setValue('nameAr', org.name_ar)
           setValue('nameEn', org.name_en)
           setValue('entityType', org.entity_type as any)
@@ -120,6 +122,16 @@ export default function OnboardingPage() {
   }
 
   const onSubmit = async (data: OrganizationForm) => {
+    // Check if logo is provided (either new file or existing logo)
+    if (!logoFile && !existingLogoUrl) {
+      toast({
+        variant: 'destructive',
+        title: 'الشعار مطلوب',
+        description: 'يجب رفع شعار الشركة قبل المتابعة. لا يمكن حفظ أي بيانات بدون شعار.',
+      })
+      return
+    }
+
     setIsLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -134,8 +146,8 @@ export default function OnboardingPage() {
         return
       }
 
-      // Upload logo if provided
-      let logoUrl = null
+      // Upload logo if provided (required for new orgs, optional for updates if one already exists)
+      let logoUrl = existingLogoUrl
       if (logoFile) {
         const fileExt = logoFile.name.split('.').pop()
         const fileName = `${user.id}-${Date.now()}.${fileExt}`
@@ -153,6 +165,16 @@ export default function OnboardingPage() {
           .getPublicUrl(fileName)
 
         logoUrl = publicUrlData.publicUrl
+      }
+
+      // Ensure we have a logo URL before proceeding
+      if (!logoUrl) {
+        toast({
+          variant: 'destructive',
+          title: 'خطأ',
+          description: 'فشل رفع الشعار. يرجى المحاولة مرة أخرى.',
+        })
+        return
       }
 
       let orgId = existingOrgId
@@ -397,7 +419,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="logo" className="text-sm md:text-base">رفع الشعار (اختياري)</Label>
+                <Label htmlFor="logo" className="text-sm md:text-base text-destructive font-semibold">رفع الشعار (مطلوب) *</Label>
                 <div className="flex items-center gap-4">
                   <input
                     id="logo"
@@ -412,12 +434,25 @@ export default function OnboardingPage() {
                     }}
                   />
                 </div>
+                <p className="text-xs md:text-sm text-destructive font-medium">
+                  ⚠️ الشعار مطلوب: لا يمكنك إنشاء سندات أو حفظ أي بيانات بدون رفع شعار الشركة
+                </p>
                 <p className="text-xs md:text-sm text-muted-foreground">
                   يفضل استخدام صورة بصيغة PNG أو JPG بحجم 500×500 بكسل
                 </p>
                 {logoFile && (
                   <p className="text-xs md:text-sm text-green-600">
-                    تم اختيار الملف: {logoFile.name}
+                    ✓ تم اختيار الملف: {logoFile.name}
+                  </p>
+                )}
+                {!logoFile && existingLogoUrl && (
+                  <p className="text-xs md:text-sm text-green-600">
+                    ✓ يوجد شعار محفوظ مسبقاً
+                  </p>
+                )}
+                {!logoFile && !existingLogoUrl && (
+                  <p className="text-xs md:text-sm text-destructive">
+                    ⚠️ يجب اختيار ملف الشعار
                   </p>
                 )}
               </div>

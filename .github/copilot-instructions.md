@@ -26,6 +26,14 @@
   - [x] Test all scenarios
   - [x] Create documentation (PDF_FIXES.md)
   - [x] Create testing guide (TESTING_GUIDE.md)
+- [x] **Enforce Logo Requirement (Dec 2024)** ⭐
+  - [x] Make logo upload mandatory in onboarding
+  - [x] Add database-level validation (trigger)
+  - [x] Block data creation without logo
+  - [x] Add validation in dashboard layout
+  - [x] Add validation in receipt creation
+  - [x] Add validation in PDF generation API
+  - [x] Create documentation (LOGO_REQUIREMENT.md)
 
 ## Project Details
 
@@ -43,8 +51,9 @@
 - Receipt and Payment Voucher Management
 - PDF generation with Arabic support
 - Row Level Security for data isolation
-- Organization onboarding flow
+- Organization onboarding flow with mandatory logo upload
 - User management with roles
+- Database-level enforcement of logo requirement
 
 ## Current Status
 
