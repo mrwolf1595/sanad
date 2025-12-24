@@ -233,59 +233,64 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6 md:py-12 px-3 sm:px-4 lg:px-8 safe-top safe-bottom">
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader className="px-4 md:px-6 pb-4">
+          <CardTitle className="text-xl md:text-2xl font-bold text-center">
             إعداد بيانات الشركة
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-sm md:text-base">
             الخطوة {step} من 3
           </CardDescription>
           <div className="flex gap-2 mt-4">
-            <div className={`flex-1 h-2 rounded ${step >= 1 ? 'bg-primary' : 'bg-gray-200'}`} />
-            <div className={`flex-1 h-2 rounded ${step >= 2 ? 'bg-primary' : 'bg-gray-200'}`} />
-            <div className={`flex-1 h-2 rounded ${step >= 3 ? 'bg-primary' : 'bg-gray-200'}`} />
+            <div className={`flex-1 h-2 rounded-full transition-colors ${step >= 1 ? 'bg-primary' : 'bg-gray-200'}`} />
+            <div className={`flex-1 h-2 rounded-full transition-colors ${step >= 2 ? 'bg-primary' : 'bg-gray-200'}`} />
+            <div className={`flex-1 h-2 rounded-full transition-colors ${step >= 3 ? 'bg-primary' : 'bg-gray-200'}`} />
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5 md:space-y-6 px-4 md:px-6">
           {/* Step 1: Basic Information */}
           {step === 1 && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-lg font-semibold">
-                <Building2 className="w-5 h-5" />
+              <div className="flex items-center gap-2 text-base md:text-lg font-semibold">
+                <Building2 className="w-5 h-5 flex-shrink-0" />
                 <span>البيانات الأساسية</span>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="nameAr">اسم الشركة/المؤسسة (عربي)</Label>
-                <Input
-                  id="nameAr"
-                  placeholder="شركة المثال للتجارة"
-                  {...register('nameAr')}
-                />
-                {errors.nameAr && (
-                  <p className="text-sm text-destructive">{errors.nameAr.message}</p>
-                )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nameAr" className="text-sm md:text-base">اسم الشركة/المؤسسة (عربي)</Label>
+                  <Input
+                    id="nameAr"
+                    placeholder="شركة المثال للتجارة"
+                    {...register('nameAr')}
+                    className="text-base"
+                  />
+                  {errors.nameAr && (
+                    <p className="text-xs md:text-sm text-destructive">{errors.nameAr.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="nameEn" className="text-sm md:text-base">اسم الشركة/المؤسسة (إنجليزي)</Label>
+                  <Input
+                    id="nameEn"
+                    placeholder="Example Trading Company"
+                    {...register('nameEn')}
+                    className="text-base"
+                    dir="ltr"
+                  />
+                  {errors.nameEn && (
+                    <p className="text-xs md:text-sm text-destructive">{errors.nameEn.message}</p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="nameEn">اسم الشركة/المؤسسة (إنجليزي)</Label>
-                <Input
-                  id="nameEn"
-                  placeholder="Example Trading Company"
-                  {...register('nameEn')}
-                />
-                {errors.nameEn && (
-                  <p className="text-sm text-destructive">{errors.nameEn.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="entityType">نوع الكيان</Label>
+                <Label htmlFor="entityType" className="text-sm md:text-base">نوع الكيان</Label>
                 <select
                   id="entityType"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-10 md:h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   {...register('entityType')}
                 >
                   <option value="company">شركة</option>
@@ -295,29 +300,33 @@ export default function OnboardingPage() {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="commercialRegistration">رقم السجل التجاري (اختياري)</Label>
-                <Input
-                  id="commercialRegistration"
-                  placeholder="1234567890"
-                  {...register('commercialRegistration')}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="commercialRegistration" className="text-sm md:text-base">رقم السجل التجاري (اختياري)</Label>
+                  <Input
+                    id="commercialRegistration"
+                    placeholder="1234567890"
+                    {...register('commercialRegistration')}
+                    className="text-base"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="taxNumber" className="text-sm md:text-base">الرقم الضريبي (اختياري)</Label>
+                  <Input
+                    id="taxNumber"
+                    placeholder="300000000000003"
+                    {...register('taxNumber')}
+                    className="text-base"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="taxNumber">الرقم الضريبي (اختياري)</Label>
-                <Input
-                  id="taxNumber"
-                  placeholder="300000000000003"
-                  {...register('taxNumber')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">وصف الشركة (اختياري)</Label>
+                <Label htmlFor="description" className="text-sm md:text-base">وصف الشركة (اختياري)</Label>
                 <textarea
                   id="description"
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
                   placeholder="نبذة مختصرة عن نشاط الشركة"
                   {...register('description')}
                 />
@@ -328,46 +337,53 @@ export default function OnboardingPage() {
           {/* Step 2: Contact Information */}
           {step === 2 && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-lg font-semibold">
-                <FileText className="w-5 h-5" />
+              <div className="flex items-center gap-2 text-base md:text-lg font-semibold">
+                <FileText className="w-5 h-5 flex-shrink-0" />
                 <span>بيانات الاتصال</span>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">العنوان الكامل</Label>
+                <Label htmlFor="address" className="text-sm md:text-base">العنوان الكامل</Label>
                 <Input
                   id="address"
                   placeholder="الرياض، شارع الملك فهد، مبنى رقم 123"
                   {...register('address')}
+                  className="text-base"
                 />
                 {errors.address && (
-                  <p className="text-sm text-destructive">{errors.address.message}</p>
+                  <p className="text-xs md:text-sm text-destructive">{errors.address.message}</p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">رقم الهاتف</Label>
-                <Input
-                  id="phone"
-                  placeholder="0501234567"
-                  {...register('phone')}
-                />
-                {errors.phone && (
-                  <p className="text-sm text-destructive">{errors.phone.message}</p>
-                )}
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm md:text-base">رقم الهاتف</Label>
+                  <Input
+                    id="phone"
+                    placeholder="0501234567"
+                    {...register('phone')}
+                    className="text-base"
+                    dir="ltr"
+                  />
+                  {errors.phone && (
+                    <p className="text-xs md:text-sm text-destructive">{errors.phone.message}</p>
+                  )}
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني الرسمي</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="info@company.com"
-                  {...register('email')}
-                />
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm md:text-base">البريد الإلكتروني الرسمي</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="info@company.com"
+                    {...register('email')}
+                    className="text-base"
+                    dir="ltr"
+                  />
+                  {errors.email && (
+                    <p className="text-xs md:text-sm text-destructive">{errors.email.message}</p>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -375,19 +391,19 @@ export default function OnboardingPage() {
           {/* Step 3: Logo Upload */}
           {step === 3 && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-lg font-semibold">
-                <Upload className="w-5 h-5" />
+              <div className="flex items-center gap-2 text-base md:text-lg font-semibold">
+                <Upload className="w-5 h-5 flex-shrink-0" />
                 <span>شعار الشركة</span>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="logo">رفع الشعار (اختياري)</Label>
+                <Label htmlFor="logo" className="text-sm md:text-base">رفع الشعار (اختياري)</Label>
                 <div className="flex items-center gap-4">
                   <input
                     id="logo"
                     type="file"
                     accept="image/png,image/jpeg,image/jpg"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                     onChange={(e) => {
                       const file = e.target.files?.[0]
                       if (file) {
@@ -396,11 +412,11 @@ export default function OnboardingPage() {
                     }}
                   />
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground">
                   يفضل استخدام صورة بصيغة PNG أو JPG بحجم 500×500 بكسل
                 </p>
                 {logoFile && (
-                  <p className="text-sm text-green-600">
+                  <p className="text-xs md:text-sm text-green-600">
                     تم اختيار الملف: {logoFile.name}
                   </p>
                 )}
@@ -409,21 +425,21 @@ export default function OnboardingPage() {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex gap-4 pt-4">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 md:gap-4 pt-4">
             {step > 1 && (
-              <Button type="button" variant="outline" onClick={prevStep} className="flex-1">
+              <Button type="button" variant="outline" onClick={prevStep} className="flex-1 h-11 md:h-10">
                 السابق
               </Button>
             )}
             {step < 3 ? (
-              <Button type="button" onClick={nextStep} className="flex-1">
+              <Button type="button" onClick={nextStep} className="flex-1 h-11 md:h-10">
                 التالي
               </Button>
             ) : (
               <Button 
                 type="button" 
                 disabled={isLoading} 
-                className="flex-1"
+                className="flex-1 h-11 md:h-10"
                 onClick={handleSubmit(onSubmit)}
               >
                 {isLoading ? 'جاري الحفظ...' : 'إنهاء الإعداد'}

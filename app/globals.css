@@ -57,3 +57,94 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Responsive utilities */
+@layer utilities {
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Safe area insets for mobile devices */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Touch-friendly tap targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Container queries support */
+  .container-responsive {
+    container-type: inline-size;
+  }
+}
+
+/* Responsive table styles */
+@layer components {
+  .table-responsive {
+    @apply w-full overflow-x-auto;
+  }
+  
+  .table-responsive table {
+    @apply min-w-full;
+  }
+
+  /* Card grid layouts */
+  .card-grid {
+    @apply grid gap-4;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .stats-grid {
+    @apply grid gap-4;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  /* Responsive form layouts */
+  .form-grid {
+    @apply grid gap-4;
+    @apply grid-cols-1 md:grid-cols-2;
+  }
+
+  .form-grid-3 {
+    @apply grid gap-4;
+    @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
+  }
+
+  /* Mobile-first card list for tables */
+  .mobile-card {
+    @apply block md:hidden p-4 border rounded-lg bg-white space-y-3;
+  }
+
+  .mobile-card-row {
+    @apply flex justify-between items-center;
+  }
+
+  .mobile-card-label {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .mobile-card-value {
+    @apply font-medium;
+  }
+
+  /* Desktop table visibility */
+  .desktop-table {
+    @apply hidden md:block;
+  }
+
+  /* Sticky header for mobile */
+  .sticky-header {
+    @apply sticky top-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60;
+  }
+}

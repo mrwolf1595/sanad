@@ -75,21 +75,25 @@ export function PDFActions({ receiptId, receiptNumber }: PDFActionsProps) {
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       <Button 
         onClick={generateAndDownload} 
         variant="outline"
         disabled={isGenerating}
+        size="sm"
+        className="h-9 md:h-10 text-xs md:text-sm"
       >
         {isGenerating ? (
           <>
-            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-            جاري التوليد...
+            <Loader2 className="ml-1 md:ml-2 h-3 w-3 md:h-4 md:w-4 animate-spin" />
+            <span className="hidden sm:inline">جاري التوليد...</span>
+            <span className="sm:hidden">جاري...</span>
           </>
         ) : (
           <>
-            <Download className="ml-2 h-4 w-4" />
-            تحميل PDF
+            <Download className="ml-1 md:ml-2 h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">تحميل PDF</span>
+            <span className="sm:hidden">تحميل</span>
           </>
         )}
       </Button>
@@ -98,15 +102,18 @@ export function PDFActions({ receiptId, receiptNumber }: PDFActionsProps) {
         onClick={openForPrinting} 
         variant="outline"
         disabled={isPrinting}
+        size="sm"
+        className="h-9 md:h-10 text-xs md:text-sm"
       >
         {isPrinting ? (
           <>
-            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-            جاري التحميل...
+            <Loader2 className="ml-1 md:ml-2 h-3 w-3 md:h-4 md:w-4 animate-spin" />
+            <span className="hidden sm:inline">جاري التحميل...</span>
+            <span className="sm:hidden">جاري...</span>
           </>
         ) : (
           <>
-            <Printer className="ml-2 h-4 w-4" />
+            <Printer className="ml-1 md:ml-2 h-3 w-3 md:h-4 md:w-4" />
             طباعة
           </>
         )}

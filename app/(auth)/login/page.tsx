@@ -87,20 +87,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+        <CardHeader className="space-y-1 sm:space-y-2 px-4 sm:px-6">
+          <CardTitle className="text-xl sm:text-2xl font-bold text-center">
             تسجيل الدخول
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-sm sm:text-base">
             أدخل بياناتك للوصول إلى حسابك
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-4 sm:px-6">
             <div className="space-y-2">
-              <Label htmlFor="email">البريد الإلكتروني</Label>
+              <Label htmlFor="email" className="text-sm sm:text-base">البريد الإلكتروني</Label>
               <Input
                 id="email"
                 type="email"
@@ -113,7 +113,7 @@ export default function LoginPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">كلمة المرور</Label>
+              <Label htmlFor="password" className="text-sm sm:text-base">كلمة المرور</Label>
               <Input
                 id="password"
                 type="password"
@@ -125,7 +125,7 @@ export default function LoginPage() {
               )}
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col space-y-4 px-4 sm:px-6">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
             </Button>

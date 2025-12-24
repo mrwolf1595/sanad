@@ -171,49 +171,49 @@ export default function NewReceiptPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex items-center gap-3 md:gap-4">
         <Link href="/dashboard/receipts">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="touch-target flex-shrink-0">
             <ArrowRight className="h-5 w-5" />
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold">سند جديد</h1>
+        <h1 className="text-xl md:text-3xl font-bold">سند جديد</h1>
       </div>
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>بيانات السند</CardTitle>
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader className="pb-3 md:pb-4 px-4 md:px-6">
+          <CardTitle className="text-lg md:text-xl">بيانات السند</CardTitle>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <          CardContent className="space-y-6">
+          <CardContent className="space-y-5 md:space-y-6 px-4 md:px-6">
             <div className="space-y-2">
-              <Label>نوع السند</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <Label className="text-sm md:text-base">نوع السند</Label>
+              <div className="flex flex-wrap gap-4 md:gap-6">
+                <label className="flex items-center gap-2 cursor-pointer touch-target">
                   <input
                     type="radio"
                     value="receipt"
                     {...register('receiptType')}
-                    className="w-4 h-4"
+                    className="w-4 h-4 md:w-5 md:h-5"
                   />
-                  <span>سند قبض</span>
+                  <span className="text-sm md:text-base">سند قبض</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer touch-target">
                   <input
                     type="radio"
                     value="payment"
                     {...register('receiptType')}
-                    className="w-4 h-4"
+                    className="w-4 h-4 md:w-5 md:h-5"
                   />
-                  <span>سند صرف</span>
+                  <span className="text-sm md:text-base">سند صرف</span>
                 </label>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               <div className="space-y-2">
-                <Label htmlFor="recipientName">
+                <Label htmlFor="recipientName" className="text-sm md:text-base">
                   {receiptType === 'receipt' ? 'استلمنا من السيد/السادة' : 'صرفنا إلى السيد/السادة'}
                 </Label>
                 <Input
@@ -221,14 +221,15 @@ export default function NewReceiptPage() {
                   placeholder="الاسم"
                   {...register('recipientName')}
                   disabled={isLoading}
+                  className="text-base"
                 />
                 {errors.recipientName && (
-                  <p className="text-sm text-destructive">{errors.recipientName.message}</p>
+                  <p className="text-xs md:text-sm text-destructive">{errors.recipientName.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="nationalIdFrom">
+                <Label htmlFor="nationalIdFrom" className="text-sm md:text-base">
                   {receiptType === 'receipt' ? 'رقم الهوية (للمستلم منه)' : 'رقم الهوية (للمستفيد)'}
                 </Label>
                 <Input
@@ -236,13 +237,14 @@ export default function NewReceiptPage() {
                   placeholder="رقم الهوية"
                   {...register('nationalIdFrom')}
                   disabled={isLoading}
+                  className="text-base"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                <div className="space-y-2">
-                <Label htmlFor="nationalIdTo">
+                <Label htmlFor="nationalIdTo" className="text-sm md:text-base">
                    {receiptType === 'receipt' ? 'رقم الهوية (للمستلم)' : 'رقم الهوية (للدافع)'}
                 </Label>
                 <Input
@@ -250,25 +252,27 @@ export default function NewReceiptPage() {
                   placeholder="رقم الهوية"
                   {...register('nationalIdTo')}
                   disabled={isLoading}
+                  className="text-base"
                 />
               </div>
                <div className="space-y-2">
-                <Label htmlFor="date">التاريخ</Label>
+                <Label htmlFor="date" className="text-sm md:text-base">التاريخ</Label>
                 <Input
                   id="date"
                   type="date"
                   {...register('date')}
                   disabled={isLoading}
+                  className="text-base"
                 />
                 {errors.date && (
-                  <p className="text-sm text-destructive">{errors.date.message}</p>
+                  <p className="text-xs md:text-sm text-destructive">{errors.date.message}</p>
                 )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               <div className="space-y-2">
-                <Label htmlFor="amount">المبلغ (بدون ضريبة)</Label>
+                <Label htmlFor="amount" className="text-sm md:text-base">المبلغ (بدون ضريبة)</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -276,13 +280,14 @@ export default function NewReceiptPage() {
                   placeholder="0.00"
                   {...register('amount')}
                   disabled={isLoading}
+                  className="text-base"
                 />
                 {errors.amount && (
-                  <p className="text-sm text-destructive">{errors.amount.message}</p>
+                  <p className="text-xs md:text-sm text-destructive">{errors.amount.message}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="vatAmount">قيمة الضريبة</Label>
+                <Label htmlFor="vatAmount" className="text-sm md:text-base">قيمة الضريبة</Label>
                 <Input
                   id="vatAmount"
                   type="number"
@@ -290,21 +295,22 @@ export default function NewReceiptPage() {
                   placeholder="0.00"
                   {...register('vatAmount')}
                   disabled={isLoading}
+                  className="text-base"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>الإجمالي</Label>
-                <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm">
-                  {totalAmount}
+              <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                <Label className="text-sm md:text-base">الإجمالي</Label>
+                <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-base font-semibold">
+                  {totalAmount} ريال
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="paymentMethod">طريقة الدفع</Label>
+              <Label htmlFor="paymentMethod" className="text-sm md:text-base">طريقة الدفع</Label>
               <select
                 id="paymentMethod"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-10 md:h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 {...register('paymentMethod')}
                 disabled={isLoading}
               >
@@ -313,76 +319,80 @@ export default function NewReceiptPage() {
                 <option value="bank_transfer">تحويل بنكي</option>
               </select>
               {errors.paymentMethod && (
-                  <p className="text-sm text-destructive">{errors.paymentMethod.message}</p>
+                  <p className="text-xs md:text-sm text-destructive">{errors.paymentMethod.message}</p>
               )}
             </div>
 
             {paymentMethod === 'check' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-md bg-slate-50">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 p-3 md:p-4 border rounded-md bg-slate-50">
                 <div className="space-y-2">
-                  <Label htmlFor="bankName">اسم البنك</Label>
+                  <Label htmlFor="bankName" className="text-sm md:text-base">اسم البنك</Label>
                   <Input
                     id="bankName"
                     placeholder="اسم البنك"
                     {...register('bankName')}
                     disabled={isLoading}
+                    className="text-base"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="chequeNumber">رقم الشيك</Label>
+                  <Label htmlFor="chequeNumber" className="text-sm md:text-base">رقم الشيك</Label>
                   <Input
                     id="chequeNumber"
                     placeholder="رقم الشيك"
                     {...register('chequeNumber')}
                     disabled={isLoading}
+                    className="text-base"
                   />
                 </div>
               </div>
             )}
 
             {paymentMethod === 'bank_transfer' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-md bg-slate-50">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 p-3 md:p-4 border rounded-md bg-slate-50">
                 <div className="space-y-2">
-                  <Label htmlFor="bankName">اسم البنك</Label>
+                  <Label htmlFor="bankName" className="text-sm md:text-base">اسم البنك</Label>
                   <Input
                     id="bankName"
                     placeholder="اسم البنك"
                     {...register('bankName')}
                     disabled={isLoading}
+                    className="text-base"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="transferNumber">رقم الحوالة</Label>
+                  <Label htmlFor="transferNumber" className="text-sm md:text-base">رقم الحوالة</Label>
                   <Input
                     id="transferNumber"
                     placeholder="رقم الحوالة"
                     {...register('transferNumber')}
                     disabled={isLoading}
+                    className="text-base"
                   />
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="description">البيان (وصف السند)</Label>
+              <Label htmlFor="description" className="text-sm md:text-base">البيان (وصف السند)</Label>
               <textarea
                 id="description"
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-h-[80px] md:min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
                 placeholder="وصف السند أو ملاحظات إضافية"
                 {...register('description')}
                 disabled={isLoading}
               />
             </div>
 
-            <div className="flex gap-4">
-              <Button type="submit" disabled={isLoading} className="flex-1">
-                {isLoading ? 'جاري الحفظ...' : 'حفظ السند'}
-              </Button>
+            <div className="flex flex-col-reverse sm:flex-row gap-3 md:gap-4 pt-2">
               <Link href="/dashboard/receipts" className="flex-1">
-                <Button type="button" variant="outline" className="w-full">
+                <Button type="button" variant="outline" className="w-full h-11 md:h-10">
                   إلغاء
                 </Button>
               </Link>
+              <Button type="submit" disabled={isLoading} className="flex-1 h-11 md:h-10">
+                {isLoading ? 'جاري الحفظ...' : 'حفظ السند'}
+              </Button>
             </div>
           </CardContent>
         </form>
