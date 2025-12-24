@@ -1,4 +1,5 @@
-import { PDFDocument, PDFName, PDFHexString, PDFBool, PDFDict, PDFArray, PDFString, PDFNumber } from 'pdf-lib'
+import { PDFDocument, PDFName, PDFHexString, PDFBool, PDFDict, PDFArray, PDFString, PDFNumber, TextAlignment } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 import fs from 'fs'
 import path from 'path'
 
