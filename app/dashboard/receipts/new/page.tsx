@@ -166,19 +166,9 @@ export default function NewReceiptPage() {
       })
 
       if (!pdfResponse.ok) {
-<<<<<<< HEAD
         const errorData = await pdfResponse.json().catch(() => ({}));
-        console.error('فشل في توليد PDF', errorData)
-        toast({
-            variant: 'destructive',
-            title: 'فشل في توليد PDF',
-            description: errorData.error || 'حدث خطأ غير معروف',
-        })
-=======
-        const errorData = await pdfResponse.json()
         console.error('فشل في توليد PDF:', errorData)
         throw new Error(errorData.error || 'فشل في توليد PDF')
->>>>>>> 158353072a525fa064c786f5a92c37de028449f2
       }
 
       toast({
