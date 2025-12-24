@@ -149,7 +149,13 @@ export default function NewReceiptPage() {
       })
 
       if (!pdfResponse.ok) {
-        console.error('فشل في توليد PDF')
+        const errorData = await pdfResponse.json().catch(() => ({}));
+        console.error('فشل في توليد PDF', errorData)
+        toast({
+            variant: 'destructive',
+            title: 'فشل في توليد PDF',
+            description: errorData.error || 'حدث خطأ غير معروف',
+        })
       }
 
       toast({
