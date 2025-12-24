@@ -27,6 +27,18 @@ export default async function DashboardLayout({
     redirect('/onboarding')
   }
 
+  // Check if organization has a logo uploaded
+  const { data: organization } = await supabase
+    .from('organizations')
+    .select('logo_url')
+    .eq('id', userData.organization_id)
+    .single()
+
+  // If organization exists but has no logo, redirect back to onboarding
+  if (!organization?.logo_url || organization.logo_url === '' || organization.logo_url === 'PLACEHOLDER_LOGO_REQUIRED') {
+    redirect('/onboarding')
+  }
+
   return (
     <DashboardProviders>
       <div className="min-h-screen bg-gray-50">

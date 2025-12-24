@@ -66,6 +66,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if organization has a valid logo
+    if (!organization.logo_url || organization.logo_url === '' || organization.logo_url === 'PLACEHOLDER_LOGO_REQUIRED') {
+      return NextResponse.json(
+        { error: 'Organization logo is required. Please complete onboarding and upload a logo before generating receipts.' },
+        { status: 400 }
+      )
+    }
+
     // Generate PDF
     const pdfBytes = await generateReceiptPDF({
       receipt,

@@ -100,6 +100,23 @@ export default function NewReceiptPage() {
         return
       }
 
+      // Check if organization has a logo before allowing receipt creation
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('logo_url')
+        .eq('id', userData.organization_id)
+        .single()
+
+      if (!orgData?.logo_url || orgData.logo_url === '' || orgData.logo_url === 'PLACEHOLDER_LOGO_REQUIRED') {
+        toast({
+          variant: 'destructive',
+          title: 'الشعار مطلوب',
+          description: 'يجب رفع شعار الشركة قبل إنشاء أي سندات. يرجى إكمال عملية الإعداد.',
+        })
+        router.push('/onboarding')
+        return
+      }
+
       // Generate receipt number using database function
       const { data: receiptNumber } = await supabase
         .rpc('generate_receipt_number', {
