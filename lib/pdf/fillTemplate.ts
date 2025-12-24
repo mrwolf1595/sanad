@@ -40,34 +40,36 @@ interface ReceiptData {
 export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array> {
   const { receipt, organization } = data
 
+  // DEBUG: Log the payment method
+  console.log('🔍 Generating PDF for receipt:', receipt.receipt_number)
+  console.log('   Payment method:', receipt.payment_method)
+  console.log('   Recipient:', receipt.recipient_name)
+
   // Load the template
   const templatePath = path.join(process.cwd(), 'public/templates/voucher.pdf')
   const templateBytes = fs.readFileSync(templatePath)
   
-  const pdfDoc = await PDFDocument.load(templateBytes)
+  // Load with ignoreEncryption to avoid issues
+  const pdfDoc = await PDFDocument.load(templateBytes, {
+    ignoreEncryption: true,
+    updateMetadata: false
+  })
   pdfDoc.registerFontkit(fontkit)
 
-  // Load Arabic font - using Cairo for better readability
-  const fontPath = path.join(process.cwd(), 'public/fonts/Cairo-Regular.ttf')
-  const fontBytes = fs.readFileSync(fontPath)
-  const customFont = await pdfDoc.embedFont(fontBytes)
-
   const form = pdfDoc.getForm()
+  const acroForm = form.acroForm
   
-  // Enable needAppearances to let PDF viewers regenerate field appearances
-  // This preserves the alignment/formatting from the template
-  form.acroForm.dict.set(
+  // Set NeedAppearances at the BEGINNING like the test script
+  acroForm.dict.set(
     pdfDoc.context.obj('NeedAppearances'),
     pdfDoc.context.obj(true)
   )
 
-  // Helper to process text - keep data as is from database
+  // Helper to process text - keep data EXACTLY as is from database
+  // No reshaping, no reversal, no modification
   const processText = (text: string): string => {
     if (!text) return ''
-    
-    // Only convert Eastern Arabic numerals (٠-٩) to Western (0-9)
-    // Keep all other text exactly as stored in database
-    return text.replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+    return text.toString()
   }
 
   // Helper to format date in Arabic format
@@ -95,21 +97,20 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     }
   }
 
-  // Helper to set text field - keep template formatting by not regenerating appearances
+  // Helper to set text field - Keep EXACTLY like test script
   const setField = (name: string, value: string | number | null | undefined) => {
     try {
       const field = form.getTextField(name)
       if (field) {
-        let text = value?.toString() || ''
-        
-        // Keep text as is from database (only convert Arabic numerals)
-        text = processText(text)
-        
-        // Only set text - don't call updateAppearances to preserve template settings
+        const text = value?.toString() || ''
         field.setText(text)
+        
+        // Clear default value
+        const fieldDict = field.acroField.dict
+        fieldDict.delete(pdfDoc.context.obj('DV'))
       }
     } catch (e) {
-      // console.warn(`Field ${name} not found in PDF`)
+      // Ignore
     }
   }
 
@@ -127,13 +128,45 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   setField('Sanaad_Date', formatArabicDate(receipt.date))
   setField('Sanaad_Time', formatArabicTime(receipt.created_at))
 
-  // Payment Method Translation
+  // Payment Method - MUST be TEXT for JavaScript in PDF to work
+  // The JavaScript in PDF accepts both Arabic and English values
+  // Map database values to Arabic for better display
+  
+  // DEBUG: Log EXACT value from database
+  console.log('🔍 Payment method from database:')
+  console.log('   Raw value:', JSON.stringify(receipt.payment_method))
+  console.log('   Type:', typeof receipt.payment_method)
+  console.log('   Length:', receipt.payment_method?.length)
+  console.log('   Trimmed:', JSON.stringify(receipt.payment_method?.trim()))
+  
   const paymentMethodMap: Record<string, string> = {
-    cash: 'نقدي',
+    cash: 'نقداً',
     check: 'شيك',
     bank_transfer: 'حوالة بنكية'
   }
-  setField('Payment_Methode', paymentMethodMap[receipt.payment_method || 'cash'] || receipt.payment_method)
+  
+  const paymentMethodValue = paymentMethodMap[receipt.payment_method || 'cash'] || 'نقداً'
+  
+  console.log('   Mapped value:', JSON.stringify(paymentMethodValue))
+  console.log('   Will set in field:', paymentMethodValue)
+  
+  console.log('   Mapped payment method:', paymentMethodValue)
+  
+  try {
+    const paymentField = form.getTextField('Payment_Methode')
+    if (paymentField) {
+      // Set the Arabic value that JavaScript expects
+      paymentField.setText(paymentMethodValue)
+      
+      // Clear default value
+      const fieldDict = paymentField.acroField.dict
+      fieldDict.delete(pdfDoc.context.obj('DV'))
+      
+      console.log('   ✓ Payment_Methode field set successfully')
+    }
+  } catch (e) {
+    console.error('   ❌ Error setting Payment_Methode:', e)
+  }
 
   // From/To Logic
   if (receipt.receipt_type === 'receipt') {
@@ -157,8 +190,43 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   setField('Address', organization.address)
   setField('Phone', organization.phone)
 
-  // Conditional Fields
+  // Conditional Fields - Set data based on payment method
+  // ALSO manually hide fields for viewers that don't support JavaScript
+  const bankFields = ['Bank_Name_Bank', 'Bank_Name_Label', 'Cheque_Number', 'Cheque_Number_Label']
+  const transferFields = ['Bank_Name_Transfer', 'Bank_Name_Trans_Label', 'Transfer_Number', 'Transfer_Number_Label']
+  
+  // Helper to set field visibility - EXACTLY like test script
+  const setFieldVisibility = (fieldName: string, visible: boolean) => {
+    try {
+      const field = form.getTextField(fieldName)
+      if (field) {
+        const widgets = field.acroField.getWidgets()
+        widgets.forEach((widget: any) => {
+          const flagsRef = widget.dict.get(pdfDoc.context.obj('F'))
+          const currentFlags = flagsRef ? flagsRef.asNumber() : 0
+          
+          let newFlags = currentFlags
+          if (visible) {
+            newFlags = currentFlags & ~2  // Remove hidden
+            newFlags = newFlags | 4        // Add print
+          } else {
+            newFlags = currentFlags | 2    // Set hidden
+          }
+          
+          widget.dict.set(pdfDoc.context.obj('F'), pdfDoc.context.obj(newFlags))
+        })
+        console.log(`   ✓ Field ${fieldName}: ${visible ? 'visible' : 'hidden'}`)
+      } else {
+        console.log(`   ⚠️  Field ${fieldName} not found`)
+      }
+    } catch (e) {
+      console.log(`   ❌ Error setting visibility for ${fieldName}:`, e)
+    }
+  }
+  
   if (receipt.payment_method === 'cash') {
+    // Cash: Clear all bank-related fields AND hide them
+    console.log('💰 Processing CASH payment')
     setField('Cheque_Number', '')
     setField('Transfer_Number', '')
     setField('Bank_Name_Bank', '')
@@ -167,40 +235,96 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     setField('Transfer_Number_Label', '')
     setField('Bank_Name_Label', '')
     setField('Bank_Name_Trans_Label', '')
+    
+    // Hide all bank fields
+    bankFields.forEach(f => setFieldVisibility(f, false))
+    transferFields.forEach(f => setFieldVisibility(f, false))
+    
   } else if (receipt.payment_method === 'check') {
+    // Check: Set cheque and bank fields, clear transfer
+    console.log('   Setting up CHECK fields...')
     setField('Cheque_Number', receipt.cheque_number)
     setField('Bank_Name_Bank', receipt.bank_name)
+    setField('Cheque_Number_Label', 'رقم الشيك')
+    setField('Bank_Name_Label', 'اسم البنك')
+    
     setField('Transfer_Number', '')
     setField('Bank_Name_Transfer', '')
-    // Keep labels for Check
     setField('Transfer_Number_Label', '')
     setField('Bank_Name_Trans_Label', '')
+    
+    // Show bank fields, hide transfer fields
+    console.log('   Showing bank/cheque fields, hiding transfer fields...')
+    bankFields.forEach(f => setFieldVisibility(f, true))
+    transferFields.forEach(f => setFieldVisibility(f, false))
+    
   } else if (receipt.payment_method === 'bank_transfer') {
+    // Transfer: Set transfer and bank fields, clear cheque
     setField('Transfer_Number', receipt.transfer_number)
     setField('Bank_Name_Transfer', receipt.bank_name)
+    setField('Transfer_Number_Label', 'رقم الحوالة')
+    setField('Bank_Name_Trans_Label', 'اسم البنك')
+    
     setField('Cheque_Number', '')
     setField('Bank_Name_Bank', '')
-    // Keep labels for Transfer
     setField('Cheque_Number_Label', '')
-    setField('Bank_Name_Label', '') // Assuming Bank_Name_Label is for Check's bank
+    setField('Bank_Name_Label', '')
+    
+    // Hide bank fields, show transfer fields
+    bankFields.forEach(f => setFieldVisibility(f, false))
+    transferFields.forEach(f => setFieldVisibility(f, true))
   }
+  
+  // NOTE: JavaScript is preserved in the PDF and will also control visibility
+  // in viewers that support it (like Adobe Acrobat). The manual visibility
+  // control above is a fallback for viewers without JavaScript support.
 
   // Handle Images (Logo and Stamp)
   if (organization.logo_url) {
     try {
-      const logoImageBytes = await fetch(organization.logo_url).then(res => res.arrayBuffer())
-      // Determine format (png or jpg)
-      const isPng = organization.logo_url.toLowerCase().endsWith('.png')
+      const logoImageBytes = await fetch(organization.logo_url).then(res => {
+        if (!res.ok) throw new Error(`Failed to fetch logo: ${res.statusText}`)
+        return res.arrayBuffer()
+      })
+      
+      const urlPath = organization.logo_url.split('?')[0].toLowerCase()
+      const isPng = urlPath.endsWith('.png')
+      
       const logoImage = isPng ? await pdfDoc.embedPng(logoImageBytes) : await pdfDoc.embedJpg(logoImageBytes)
       
-      try {
-        const logoField = form.getButton('Logo_af_image')
-        if (logoField) {
+      // Try to set logo in form field (try multiple possible field names)
+      const possibleLogoFields = ['Logo_af_image', 'Logo', 'Company_Logo', 'logo']
+      for (const fieldName of possibleLogoFields) {
+        try {
+          const logoField = form.getButton(fieldName)
+          if (logoField) {
             logoField.setImage(logoImage)
+            break
+          }
+        } catch (e) {
+          // Try next field name
         }
-      } catch (e) {
-          // Ignore
       }
+      
+      // ALWAYS draw logo directly on the first page for guaranteed visibility
+      const pages = pdfDoc.getPages()
+      const firstPage = pages[0]
+      const { width, height } = firstPage.getSize()
+      
+      // Scale logo to fit (max 100x100 pixels for better visibility)
+      const maxLogoSize = 100
+      const logoScale = Math.min(maxLogoSize / logoImage.width, maxLogoSize / logoImage.height)
+      const logoWidth = logoImage.width * logoScale
+      const logoHeight = logoImage.height * logoScale
+      
+      // Draw at top LEFT (matching template design)
+      firstPage.drawImage(logoImage, {
+        x: 40,
+        y: height - logoHeight - 40,
+        width: logoWidth,
+        height: logoHeight,
+      })
+      
     } catch (e) {
       console.error('Error embedding logo:', e)
     }
@@ -208,8 +332,14 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
 
   if (organization.stamp_url) {
     try {
-      const stampImageBytes = await fetch(organization.stamp_url).then(res => res.arrayBuffer())
-      const isPng = organization.stamp_url.toLowerCase().endsWith('.png')
+      const stampImageBytes = await fetch(organization.stamp_url).then(res => {
+        if (!res.ok) throw new Error(`Failed to fetch stamp: ${res.statusText}`)
+        return res.arrayBuffer()
+      })
+      
+      const urlPath = organization.stamp_url.split('?')[0].toLowerCase()
+      const isPng = urlPath.endsWith('.png')
+      
       const stampImage = isPng ? await pdfDoc.embedPng(stampImageBytes) : await pdfDoc.embedJpg(stampImageBytes)
       
       try {
@@ -226,8 +356,14 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   }
 
   // Don't flatten to allow JavaScript in Payment_Methode field to execute
-  // The JavaScript code in the PDF will handle field visibility/behavior
   // form.flatten()
 
-  return await pdfDoc.save()
+  // Do NOT set NeedAppearances again at the end - already set at beginning
+  // This matches the test script behavior
+
+  // Save with options to prevent automatic appearance updates by pdf-lib
+  return await pdfDoc.save({
+    updateFieldAppearances: false,
+    useObjectStreams: false
+  })
 }
