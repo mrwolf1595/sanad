@@ -43,6 +43,32 @@ export async function generateBarcode(options: BarcodeOptions): Promise<Buffer> 
 }
 
 /**
+ * Generate a QR code image as PNG buffer
+ * @param options - Barcode configuration options
+ * @returns PNG image buffer
+ */
+export async function generateQRCode(options: BarcodeOptions): Promise<Buffer> {
+  const {
+    text,
+    width = 2, // scale factor
+  } = options
+
+  try {
+    const png = await bwip.toBuffer({
+      bcid: 'qrcode',        // QR Code type
+      text: text,            // Text to encode
+      scale: width,          // scaling factor
+      includetext: false,    // QR codes don't have human-readable text usually
+    })
+
+    return png
+  } catch (error) {
+    console.error('Failed to generate QR code:', error)
+    throw new Error('Failed to generate QR code')
+  }
+}
+
+/**
  * Generate a barcode ID for a receipt
  * Format: RCP-YYYY-NNNNNN
  * @param receiptNumber - The receipt number

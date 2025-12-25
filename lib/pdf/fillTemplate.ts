@@ -2,7 +2,7 @@ import { PDFDocument, PDFName, PDFHexString, PDFBool, PDFDict, PDFArray, PDFStri
 import fontkit from '@pdf-lib/fontkit'
 import fs from 'fs'
 import path from 'path'
-import { generateBarcode } from './generateBarcode'
+import { generateBarcode, generateQRCode } from './generateBarcode'
 
 interface ReceiptData {
   receipt: any
@@ -278,17 +278,28 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   // Generate barcode image
   if (receipt.barcode_id) {
     try {
-      const barcodeBuffer = await generateBarcode({
-        text: receipt.barcode_id,
-        width: 1.5,
-        height: 25,
-        includetext: true,
+      // Prepare QR code content with receipt details
+      const qrData = [
+        `رقم السند: ${receipt.receipt_number}`,
+        `التاريخ: ${formatArabicDate(receipt.date)}`,
+        `المبلغ: ${receipt.amount.toFixed(2)}`,
+        receipt.receipt_type === 'receipt' ? `من: ${receipt.recipient_name}` : `إلى: ${receipt.recipient_name}`,
+      ].join('\n')
+
+      const barcodeBuffer = await generateQRCode({
+        text: qrData,
+        width: 3, // Scale for QR code
       })
 
       const barcodeImage = await pdfDoc.embedPng(barcodeBuffer)
-      const barcodeScale = 0.8
-      const barcodeWidth = barcodeImage.width * barcodeScale
-      const barcodeHeight = barcodeImage.height * barcodeScale
+      // Helper to scale down if too big (User requested smaller size)
+      const maxSize = 60 // Reduced from 80 to 60
+      let barcodeWidth = barcodeImage.width
+      let barcodeHeight = barcodeImage.height
+
+      const scale = Math.min(maxSize / barcodeWidth, maxSize / barcodeHeight, 1)
+      barcodeWidth *= scale
+      barcodeHeight *= scale
 
       // Position: center horizontally, near top (15 points from top)
       const x = (width - barcodeWidth) / 2
