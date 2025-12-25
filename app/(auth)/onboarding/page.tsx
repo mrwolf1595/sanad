@@ -17,13 +17,17 @@ const organizationSchema = z.object({
   nameAr: z.string().min(3, { message: 'اسم الشركة بالعربي مطلوب (3 أحرف على الأقل)' }),
   nameEn: z.string().min(3, { message: 'اسم الشركة بالإنجليزي مطلوب (3 أحرف على الأقل)' }),
   entityType: z.enum(['company', 'establishment', 'office', 'other']),
-  commercialRegistration: z.string().optional(),
-  taxNumber: z.string().optional(),
+  commercialRegistration: z.string().optional().refine((val) => !val || /^\d+$/.test(val), {
+    message: 'السجل التجاري يجب أن يحتوي على أرقام فقط',
+  }),
+  taxNumber: z.string().optional().refine((val) => !val || /^\d+$/.test(val), {
+    message: 'الرقم الضريبي يجب أن يحتوي على أرقام فقط',
+  }),
   address: z.string().min(5, { message: 'العنوان مطلوب (5 أحرف على الأقل)' }),
   phone: z.string().min(9, { message: 'رقم الهاتف مطلوب' }),
   email: z.string().email({ message: 'البريد الإلكتروني غير صحيح' }),
   description: z.string().optional(),
-  logo: z.any().optional(),
+  logo: z.any(), // Logo is validated separately in onSubmit
 })
 
 type OrganizationForm = z.infer<typeof organizationSchema>
@@ -122,7 +126,8 @@ export default function OnboardingPage() {
   }
 
   const onSubmit = async (data: OrganizationForm) => {
-    // Check if logo is provided (either new file or existing logo)
+    // CRITICAL: Check if logo is provided (either new file or existing logo)
+    // This is enforced at multiple levels: UI, Backend, and Database
     if (!logoFile && !existingLogoUrl) {
       toast({
         variant: 'destructive',
@@ -167,13 +172,14 @@ export default function OnboardingPage() {
         logoUrl = publicUrlData.publicUrl
       }
 
-      // Ensure we have a logo URL before proceeding
+      // Ensure we have a logo URL before proceeding (CRITICAL VALIDATION)
       if (!logoUrl) {
         toast({
           variant: 'destructive',
-          title: 'خطأ',
-          description: 'فشل رفع الشعار. يرجى المحاولة مرة أخرى.',
+          title: 'خطأ - الشعار إلزامي',
+          description: 'فشل رفع الشعار. يرجى المحاولة مرة أخرى. لا يمكن إتمام التسجيل بدون شعار.',
         })
+        setIsLoading(false)
         return
       }
 
@@ -328,9 +334,14 @@ export default function OnboardingPage() {
                   <Input
                     id="commercialRegistration"
                     placeholder="1234567890"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     {...register('commercialRegistration')}
                     className="text-base"
                   />
+                  {errors.commercialRegistration && (
+                    <p className="text-xs md:text-sm text-destructive">{errors.commercialRegistration.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -338,9 +349,14 @@ export default function OnboardingPage() {
                   <Input
                     id="taxNumber"
                     placeholder="300000000000003"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     {...register('taxNumber')}
                     className="text-base"
                   />
+                  {errors.taxNumber && (
+                    <p className="text-xs md:text-sm text-destructive">{errors.taxNumber.message}</p>
+                  )}
                 </div>
               </div>
 

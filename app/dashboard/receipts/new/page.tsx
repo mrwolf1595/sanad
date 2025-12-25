@@ -17,8 +17,8 @@ import Link from 'next/link'
 const receiptSchema = z.object({
   receiptType: z.enum(['receipt', 'payment']),
   recipientName: z.string().min(3, { message: 'اسم المستلم/الدافع مطلوب' }),
-  amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: 'المبلغ يجب أن يكون أكبر من صفر',
+  amount: z.string().refine((val) => /^\d+(\.\d+)?$/.test(val) && Number(val) > 0, {
+    message: 'المبلغ يجب أن يكون رقماً أكبر من صفر',
   }),
   date: z.string().min(1, { message: 'التاريخ مطلوب' }),
   description: z.string().optional(),
@@ -28,7 +28,9 @@ const receiptSchema = z.object({
   bankName: z.string().optional(),
   chequeNumber: z.string().optional(),
   transferNumber: z.string().optional(),
-  vatAmount: z.string().optional(),
+  vatAmount: z.string().optional().refine((val) => !val || /^\d+(\.\d+)?$/.test(val), {
+    message: 'الضريبة يجب أن تكون رقماً',
+  }),
 }).refine((data) => {
   if (data.paymentMethod === 'check') {
     return !!data.bankName && !!data.chequeNumber;
@@ -294,8 +296,8 @@ export default function NewReceiptPage() {
                 <Label htmlFor="amount" className="text-sm md:text-base">المبلغ (بدون ضريبة)</Label>
                 <Input
                   id="amount"
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0.00"
                   {...register('amount')}
                   disabled={isLoading}
@@ -309,13 +311,16 @@ export default function NewReceiptPage() {
                 <Label htmlFor="vatAmount" className="text-sm md:text-base">قيمة الضريبة</Label>
                 <Input
                   id="vatAmount"
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0.00"
                   {...register('vatAmount')}
                   disabled={isLoading}
                   className="text-base"
                 />
+                {errors.vatAmount && (
+                  <p className="text-xs md:text-sm text-destructive">{errors.vatAmount.message}</p>
+                )}
               </div>
               <div className="space-y-2 sm:col-span-2 lg:col-span-1">
                 <Label className="text-sm md:text-base">الإجمالي</Label>

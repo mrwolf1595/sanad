@@ -36,7 +36,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# test files (قد تحتوي على بيانات حساسة)
 test-*.js
 test-*.ts
 
@@ -59,3 +58,4 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+*.sql
