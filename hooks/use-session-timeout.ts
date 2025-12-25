@@ -111,7 +111,14 @@ export function useSessionTimeout(options: UseSessionTimeoutOptions = {}) {
   }, [resetTimer])
 
   // Check for expired session on mount (in case user was away)
-  const checkStoredSession = useCallback(() => {
+  const checkStoredSession = useCallback(async () => {
+    // First check if user is actually logged in
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      // No user logged in, don't start timer
+      return false
+    }
+
     const storedLastActivity = localStorage.getItem('session-last-activity')
     if (storedLastActivity) {
       const lastActivity = parseInt(storedLastActivity, 10)
@@ -123,43 +130,50 @@ export function useSessionTimeout(options: UseSessionTimeoutOptions = {}) {
         handleLogout()
         return false
       }
+    } else {
+      // No stored activity, initialize it
+      localStorage.setItem('session-last-activity', Date.now().toString())
     }
     return true
-  }, [timeout, handleLogout])
+  }, [timeout, handleLogout, supabase])
 
   useEffect(() => {
     // Check if session is already expired
-    if (!checkStoredSession()) {
-      return
-    }
-
-    // Initialize timer
-    resetTimer()
-
-    // Add activity listeners
-    activityEvents.forEach((event) => {
-      window.addEventListener(event, handleActivity, { passive: true })
-    })
-
-    // Check session on visibility change (when user comes back to tab)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        if (!checkStoredSession()) {
-          return
-        }
-        resetTimer()
+    checkStoredSession().then((isValid) => {
+      if (!isValid) {
+        return
       }
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // Cleanup
-    return () => {
-      clearTimers()
+      // Initialize timer
+      resetTimer()
+
+      // Add activity listeners
       activityEvents.forEach((event) => {
-        window.removeEventListener(event, handleActivity)
+        window.addEventListener(event, handleActivity, { passive: true })
       })
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
+
+      // Check session on visibility change (when user comes back to tab)
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          checkStoredSession().then((isValid) => {
+            if (!isValid) {
+              return
+            }
+            resetTimer()
+          })
+        }
+      }
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+
+      // Cleanup
+      return () => {
+        clearTimers()
+        activityEvents.forEach((event) => {
+          window.removeEventListener(event, handleActivity)
+        })
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+    })
   }, [activityEvents, handleActivity, resetTimer, checkStoredSession, clearTimers])
 
   // Get remaining time

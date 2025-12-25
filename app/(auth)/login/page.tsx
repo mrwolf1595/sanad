@@ -70,6 +70,12 @@ function LoginPageContent() {
         return
       }
 
+      // Clear any old session data from localStorage
+      localStorage.removeItem('session-last-activity')
+      
+      // Set fresh session activity time
+      localStorage.setItem('session-last-activity', Date.now().toString())
+
       toast({
         title: 'تم تسجيل الدخول بنجاح',
       })
