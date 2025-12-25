@@ -1,7 +1,8 @@
-import { PDFDocument, PDFName, PDFHexString, PDFBool, PDFDict, PDFArray, PDFString, PDFNumber, TextAlignment } from 'pdf-lib'
+import { PDFDocument, PDFName, PDFHexString, PDFBool, PDFDict, PDFArray, PDFString, PDFNumber, TextAlignment, rgb } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import fs from 'fs'
 import path from 'path'
+import { generateBarcode } from './generateBarcode'
 
 interface ReceiptData {
   receipt: any
@@ -240,6 +241,43 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   // Don't flatten to allow JavaScript in Payment_Methode field to execute
   // The JavaScript code in the PDF will handle field visibility/behavior
   // form.flatten()
+
+  // Generate and add barcode at the top center of the page
+  const pages = pdfDoc.getPages()
+  const firstPage = pages[0]
+  const { width, height } = firstPage.getSize()
+
+  // Generate barcode image
+  if (receipt.barcode_id) {
+    try {
+      const barcodeBuffer = await generateBarcode({
+        text: receipt.barcode_id,
+        width: 2,
+        height: 40,
+        includetext: true,
+      })
+
+      const barcodeImage = await pdfDoc.embedPng(barcodeBuffer)
+      const barcodeScale = 1.5
+      const barcodeWidth = barcodeImage.width * barcodeScale
+      const barcodeHeight = barcodeImage.height * barcodeScale
+
+      // Position: center horizontally, near top (20 points from top)
+      const x = (width - barcodeWidth) / 2
+      const y = height - barcodeHeight - 20
+
+      firstPage.drawImage(barcodeImage, {
+        x: x,
+        y: y,
+        width: barcodeWidth,
+        height: barcodeHeight,
+      })
+
+      console.log(`✅ Barcode added to PDF: ${receipt.barcode_id}`)
+    } catch (error) {
+      console.error('Failed to add barcode to PDF:', error)
+    }
+  }
 
   // Do NOT set NeedAppearances again at the end - already set at beginning
   // This matches the test script behavior

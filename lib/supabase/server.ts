@@ -20,9 +20,16 @@ export async function createClient(): Promise<SupabaseClient<Database>> {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // Server Component
+            // Server Component - ignore errors
           }
         },
+      },
+      auth: {
+        // Suppress refresh token errors for unauthenticated users
+        detectSessionInUrl: false,
+        persistSession: true,
+        autoRefreshToken: true,
+        flowType: 'pkce',
       },
     }
   ) as SupabaseClient<Database>

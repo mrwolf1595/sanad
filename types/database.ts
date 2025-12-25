@@ -111,6 +111,7 @@ export interface Database {
           transfer_number: string | null
           vat_amount: number | null
           total_amount: number | null
+          barcode_id: string | null
 
           created_at: string
           pdf_url: string | null
