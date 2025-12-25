@@ -24,7 +24,9 @@ const organizationSchema = z.object({
     message: 'الرقم الضريبي يجب أن يحتوي على أرقام فقط',
   }),
   address: z.string().min(5, { message: 'العنوان مطلوب (5 أحرف على الأقل)' }),
-  phone: z.string().min(9, { message: 'رقم الهاتف مطلوب' }),
+  phone: z.string().min(9, { message: 'رقم الهاتف مطلوب' }).refine((val) => /^\d+$/.test(val), {
+    message: 'رقم الهاتف يجب أن يحتوي على أرقام فقط',
+  }),
   email: z.string().email({ message: 'البريد الإلكتروني غير صحيح' }),
   description: z.string().optional(),
   logo: z.any(), // Logo is validated separately in onSubmit
@@ -242,10 +244,16 @@ export default function OnboardingPage() {
         throw userError
       }
 
+      // Refresh the session to ensure it's valid
+      await supabase.auth.refreshSession()
+
       toast({
         title: existingOrgId ? 'تم تحديث البيانات بنجاح' : 'تم إنشاء الشركة بنجاح',
         description: 'مرحباً بك في نظام سندات القبض والصرف',
       })
+
+      // Small delay to ensure database propagation
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       router.push('/dashboard')
       router.refresh()
@@ -399,6 +407,8 @@ export default function OnboardingPage() {
                   <Input
                     id="phone"
                     placeholder="0501234567"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     {...register('phone')}
                     className="text-base"
                     dir="ltr"

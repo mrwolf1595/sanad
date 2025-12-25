@@ -23,8 +23,12 @@ const receiptSchema = z.object({
   date: z.string().min(1, { message: 'التاريخ مطلوب' }),
   description: z.string().optional(),
   paymentMethod: z.enum(['cash', 'check', 'bank_transfer']),
-  nationalIdFrom: z.string().optional(),
-  nationalIdTo: z.string().optional(),
+  nationalIdFrom: z.string().optional().refine((val) => !val || /^\d+$/.test(val), {
+    message: 'رقم الهوية يجب أن يحتوي على أرقام فقط',
+  }),
+  nationalIdTo: z.string().optional().refine((val) => !val || /^\d+$/.test(val), {
+    message: 'رقم الهوية يجب أن يحتوي على أرقام فقط',
+  }),
   bankName: z.string().optional(),
   chequeNumber: z.string().optional(),
   transferNumber: z.string().optional(),
@@ -62,7 +66,7 @@ export default function NewReceiptPage() {
       receiptType: 'receipt',
       date: new Date().toISOString().split('T')[0],
       paymentMethod: 'cash',
-      vatAmount: '0',
+      vatAmount: '',
     },
   })
 
@@ -256,10 +260,15 @@ export default function NewReceiptPage() {
                 <Input
                   id="nationalIdFrom"
                   placeholder="رقم الهوية"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   {...register('nationalIdFrom')}
                   disabled={isLoading}
                   className="text-base"
                 />
+                {errors.nationalIdFrom && (
+                  <p className="text-xs md:text-sm text-destructive">{errors.nationalIdFrom.message}</p>
+                )}
               </div>
             </div>
 
@@ -271,10 +280,15 @@ export default function NewReceiptPage() {
                 <Input
                   id="nationalIdTo"
                   placeholder="رقم الهوية"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   {...register('nationalIdTo')}
                   disabled={isLoading}
                   className="text-base"
                 />
+                {errors.nationalIdTo && (
+                  <p className="text-xs md:text-sm text-destructive">{errors.nationalIdTo.message}</p>
+                )}
               </div>
                <div className="space-y-2">
                 <Label htmlFor="date" className="text-sm md:text-base">التاريخ</Label>
