@@ -128,32 +128,73 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   setField('Address', organization.address)
   setField('Phone', organization.phone)
 
+  // Helper to show/hide fields
+  const setFieldVisibility = (fieldName: string, visible: boolean) => {
+    try {
+      const field = form.getField(fieldName)
+      if (field) {
+        const acroField = field.acroField
+        const flags = acroField.getFlags()
+        
+        if (visible) {
+          // Clear hidden flag (bit 1): flags & ~2
+          acroField.setFlags(flags & ~2)
+        } else {
+          // Set hidden flag (bit 1): flags | 2
+          acroField.setFlags(flags | 2)
+        }
+      }
+    } catch (e) {
+      // Field not found, ignore
+    }
+  }
+
   // Conditional Fields
+  const bankFields = ['Bank_Name_Bank', 'Bank_Name_Label', 'Cheque_Number', 'Cheque_Number_Label']
+  const transferFields = ['Bank_Name_Transfer', 'Bank_Name_Trans_Label', 'Transfer_Number', 'Transfer_Number_Label']
+
+  console.log('🔧 Setting up payment method fields...')
+  console.log('   Payment method:', receipt.payment_method)
+
   if (receipt.payment_method === 'cash') {
-    setField('Cheque_Number', '')
-    setField('Transfer_Number', '')
-    setField('Bank_Name_Bank', '')
-    setField('Bank_Name_Transfer', '')
-    setField('Cheque_Number_Label', '')
-    setField('Transfer_Number_Label', '')
-    setField('Bank_Name_Label', '')
-    setField('Bank_Name_Trans_Label', '')
+    console.log('   → Hiding all conditional fields (Cash payment)')
+    // Hide all conditional fields
+    bankFields.forEach(f => {
+      setField(f, '')
+      setFieldVisibility(f, false)
+    })
+    transferFields.forEach(f => {
+      setField(f, '')
+      setFieldVisibility(f, false)
+    })
   } else if (receipt.payment_method === 'check') {
+    console.log('   → Showing check fields:', receipt.cheque_number, receipt.bank_name)
+    // Show check fields
     setField('Cheque_Number', receipt.cheque_number)
     setField('Bank_Name_Bank', receipt.bank_name)
-    setField('Transfer_Number', '')
-    setField('Bank_Name_Transfer', '')
-    // Keep labels for Check
-    setField('Transfer_Number_Label', '')
-    setField('Bank_Name_Trans_Label', '')
+    setField('Cheque_Number_Label', 'رقم الشيك')
+    setField('Bank_Name_Label', 'اسم البنك')
+    bankFields.forEach(f => setFieldVisibility(f, true))
+    
+    // Hide transfer fields
+    transferFields.forEach(f => {
+      setField(f, '')
+      setFieldVisibility(f, false)
+    })
   } else if (receipt.payment_method === 'bank_transfer') {
-    setField('Transfer_Number', receipt.transfer_number)
-    setField('Bank_Name_Transfer', receipt.bank_name)
-    setField('Cheque_Number', '')
-    setField('Bank_Name_Bank', '')
-    // Keep labels for Transfer
-    setField('Cheque_Number_Label', '')
-    setField('Bank_Name_Label', '') // Assuming Bank_Name_Label is for Check's bank
+    console.log('   → Using SAME fields as check for transfer:', receipt.transfer_number, receipt.bank_name)
+    // Use the SAME fields as check but with transfer data
+    setField('Cheque_Number', receipt.transfer_number)
+    setField('Bank_Name_Bank', receipt.bank_name)
+    setField('Cheque_Number_Label', 'رقم الحوالة')
+    setField('Bank_Name_Label', 'اسم البنك')
+    bankFields.forEach(f => setFieldVisibility(f, true))
+    
+    // Hide transfer-specific fields (not used)
+    transferFields.forEach(f => {
+      setField(f, '')
+      setFieldVisibility(f, false)
+    })
   }
 
   // Handle Images (Logo and Stamp)
