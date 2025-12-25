@@ -85,6 +85,37 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     }
   }
 
+  // Helper to set field value only without changing font/appearance
+  const setFieldValueOnly = (name: string, value: string | number | null | undefined) => {
+    try {
+      const field = form.getTextField(name)
+      if (field) {
+        let text = value?.toString() || ''
+        text = processText(text)
+        field.setText(text)
+        // Update with custom font to support Arabic when flattening
+        field.updateAppearances(customFont)
+      }
+    } catch (e) {
+      // Field not found, ignore
+    }
+  }
+
+  // Helper to set text field WITHOUT changing font (preserves original PDF font)
+  const setFieldPreserve = (name: string, value: string | number | null | undefined) => {
+    try {
+      const field = form.getTextField(name)
+      if (field) {
+        let text = value?.toString() || ''
+        text = processText(text)
+        field.setText(text)
+        // Do NOT call updateAppearances to preserve original font
+      }
+    } catch (e) {
+      // console.warn(`Field ${name} not found in PDF`)
+    }
+  }
+
   // Map fields
   setField('Name_Of_Company', organization.name_ar)
   setField('Company_description', organization.description)
@@ -134,15 +165,14 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     try {
       const field = form.getField(fieldName)
       if (field) {
-        const acroField = field.acroField
-        const flags = acroField.getFlags()
-        
         if (visible) {
+          const acroField = field.acroField
+          const flags = acroField.getFlags()
           // Clear hidden flag (bit 1): flags & ~2
           acroField.setFlags(flags & ~2)
         } else {
-          // Set hidden flag (bit 1): flags | 2
-          acroField.setFlags(flags | 2)
+          // Remove the field entirely to ensure it doesn't appear
+          form.removeField(field)
         }
       }
     } catch (e) {
@@ -173,26 +203,24 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     // Show check fields
     setField('Cheque_Number', receipt.cheque_number)
     setField('Bank_Name_Bank', receipt.bank_name)
-    setField('Cheque_Number_Label', 'رقم الشيك')
-    setField('Bank_Name_Label', 'اسم البنك')
+
     bankFields.forEach(f => setFieldVisibility(f, true))
-    
+
     // Hide transfer fields
     transferFields.forEach(f => {
       setField(f, '')
       setFieldVisibility(f, false)
     })
   } else if (receipt.payment_method === 'bank_transfer') {
-    console.log('   → Using SAME fields as check for transfer:', receipt.transfer_number, receipt.bank_name)
-    // Use the SAME fields as check but with transfer data
-    setField('Cheque_Number', receipt.transfer_number)
-    setField('Bank_Name_Bank', receipt.bank_name)
-    setField('Cheque_Number_Label', 'رقم الحوالة')
-    setField('Bank_Name_Label', 'اسم البنك')
-    bankFields.forEach(f => setFieldVisibility(f, true))
-    
-    // Hide transfer-specific fields (not used)
-    transferFields.forEach(f => {
+    console.log('   → Showing transfer fields:', receipt.transfer_number, receipt.bank_name)
+    // Show transfer fields
+    setField('Transfer_Number', receipt.transfer_number)
+    setField('Bank_Name_Transfer', receipt.bank_name)
+
+    transferFields.forEach(f => setFieldVisibility(f, true))
+
+    // Hide check fields
+    bankFields.forEach(f => {
       setField(f, '')
       setFieldVisibility(f, false)
     })
@@ -238,9 +266,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     }
   }
 
-  // Don't flatten to allow JavaScript in Payment_Methode field to execute
-  // The JavaScript code in the PDF will handle field visibility/behavior
-  // form.flatten()
+  // Flatten the form to lock in all field values and visibility settings
+  // This must be done BEFORE adding the barcode image
+  form.flatten()
 
   // Generate and add barcode at the top center of the page
   const pages = pdfDoc.getPages()
@@ -252,19 +280,19 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     try {
       const barcodeBuffer = await generateBarcode({
         text: receipt.barcode_id,
-        width: 2,
-        height: 40,
+        width: 1.5,
+        height: 25,
         includetext: true,
       })
 
       const barcodeImage = await pdfDoc.embedPng(barcodeBuffer)
-      const barcodeScale = 1.5
+      const barcodeScale = 0.8
       const barcodeWidth = barcodeImage.width * barcodeScale
       const barcodeHeight = barcodeImage.height * barcodeScale
 
-      // Position: center horizontally, near top (20 points from top)
+      // Position: center horizontally, near top (15 points from top)
       const x = (width - barcodeWidth) / 2
-      const y = height - barcodeHeight - 20
+      const y = height - barcodeHeight - 15
 
       firstPage.drawImage(barcodeImage, {
         x: x,
