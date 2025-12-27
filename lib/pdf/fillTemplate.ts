@@ -46,23 +46,34 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   const formatArabicDate = (dateStr: string): string => {
     try {
       const date = new Date(dateStr)
-      const day = date.getDate().toString().padStart(2, '0')
-      const month = (date.getMonth() + 1).toString().padStart(2, '0')
-      const year = date.getFullYear()
-      return `${day}-${month}-${year}`
+      // Use Intl for consistent formatting
+      return new Intl.DateTimeFormat('en-GB', { // en-GB uses DD/MM/YYYY
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: 'Asia/Riyadh' // Ensure consistency
+      }).format(date).replace(/\//g, '-')
     } catch (e) {
       return dateStr
     }
   }
 
-  // Helper to format time in Arabic format
+  // Helper to format time in Arabic format with timezone adjustment
   const formatArabicTime = (dateStr: string): string => {
     try {
       const date = new Date(dateStr)
-      const hours = date.getHours().toString().padStart(2, '0')
-      const minutes = date.getMinutes().toString().padStart(2, '0')
-      return `${hours}:${minutes}`
+      // Use Intl to format time in user's timezone (Saudi Arabia/Riyadh)
+      // Format: hh:mm:ss result with AM/PM (m/s)
+      return new Intl.DateTimeFormat('ar-SA', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Riyadh',
+        numberingSystem: 'latn' // Force Western digits to match PDF font requirements if needed, or let processText handle it
+      }).format(date)
     } catch (e) {
+      console.error('Error formatting time:', e)
       return ''
     }
   }
