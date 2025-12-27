@@ -8,15 +8,17 @@ interface ReceiptData {
   receipt: any
   organization: any
   createdBy: string
+  appUrl?: string
 }
 
 export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array> {
-  const { receipt, organization } = data
+  const { receipt, organization, appUrl: providedAppUrl } = data
 
   // DEBUG: Log the payment method
   console.log('🔍 Generating PDF for receipt:', receipt.receipt_number)
   console.log('   Payment method:', receipt.payment_method)
   console.log('   Recipient:', receipt.recipient_name)
+  console.log('   App URL:', providedAppUrl || 'Not provided (using env)')
 
   const templatePath = path.join(process.cwd(), 'public/templates/voucher.pdf')
   const templateBytes = fs.readFileSync(templatePath)
@@ -280,7 +282,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
     try {
       // Prepare QR code content with receipt details
       // Prepare QR code content - URL for verification
-      let appUrl = process.env.NEXT_PUBLIC_APP_URL;
+      let appUrl = providedAppUrl || process.env.NEXT_PUBLIC_APP_URL;
 
       if (!appUrl && process.env.VERCEL_URL) {
         appUrl = `https://${process.env.VERCEL_URL}`;

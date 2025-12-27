@@ -114,7 +114,7 @@ function VerifyContent() {
             التحقق من السند
           </CardTitle>
           <CardDescription>
-            صيغة الباركود: RCP-YYYY-NNNNNN (مثال: RCP-2024-000001)
+            صيغة الباركود: RCP-YYYY-NNNNNN أو REC-YYYY-NNNNNN
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -157,8 +157,8 @@ function VerifyContent() {
 
             {result && (
               <div className={`rounded-xl border shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-4 ${result.valid
-                  ? 'bg-gradient-to-br from-white to-green-50/30 border-green-200'
-                  : 'bg-gradient-to-br from-white to-red-50/30 border-red-200'
+                ? 'bg-gradient-to-br from-white to-green-50/30 border-green-200'
+                : 'bg-gradient-to-br from-white to-red-50/30 border-red-200'
                 }`}>
                 {/* Status Banner */}
                 <div className={`p-4 flex items-center justify-center gap-2 border-b ${result.valid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

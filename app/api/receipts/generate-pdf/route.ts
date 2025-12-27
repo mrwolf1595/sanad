@@ -92,13 +92,19 @@ export async function POST(request: NextRequest) {
     }
     console.log('='.repeat(60))
 
+    // Determine App URL from request
+    const host = request.headers.get('host')
+    const protocol = host?.includes('localhost') ? 'http' : 'https'
+    const appUrl = host ? `${protocol}://${host}` : undefined
+
     // Generate PDF
     const pdfBytes = await generateReceiptPDF({
       receipt,
       organization,
       createdBy: userData.full_name,
+      appUrl,
     })
-    
+
     console.log('✅ PDF generated successfully!')
     console.log('='.repeat(60))
 

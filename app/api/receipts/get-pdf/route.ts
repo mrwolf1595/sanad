@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Check if PDF already exists in storage
     if (receipt.pdf_url) {
       let storagePath = receipt.pdf_url
-      
+
       // Handle legacy full URLs by extracting the path
       if (receipt.pdf_url.startsWith('http')) {
         const parts = receipt.pdf_url.split('/receipts/')
@@ -95,11 +95,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Determine App URL from request
+    const host = request.headers.get('host')
+    const protocol = host?.includes('localhost') ? 'http' : 'https'
+    const appUrl = host ? `${protocol}://${host}` : undefined
+
     // Generate PDF
     const pdfBytes = await generateReceiptPDF({
       receipt,
       organization,
       createdBy: userData.full_name,
+      appUrl
     })
 
     // Upload PDF to Supabase Storage

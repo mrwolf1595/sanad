@@ -20,13 +20,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Validate barcode format
-    const barcodePattern = /^RCP-\d{4}-\d{6}$/
+    // Validate barcode format - Allow RCP, REC, and potential variations
+    // Previous strict: /^RCP-\d{4}-\d{6}$/
+    // New flexible: Starts with R, contains alphanumeric and dashes
+    const barcodePattern = /^R[A-Z]{2,3}-[0-9]{4}-[A-Z0-9]+$|^R[A-Z0-9-]+$/i
     if (!barcodePattern.test(barcodeId)) {
       return NextResponse.json(
-        { 
-          error: 'Invalid barcode format. Expected format: RCP-YYYY-NNNNNN',
-          valid: false 
+        {
+          error: 'Invalid barcode format. Expected format: RCP-YYYY-XXXXXX',
+          valid: false
         },
         { status: 400 }
       )
@@ -95,9 +97,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error verifying receipt:', error)
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
-        valid: false 
+        valid: false
       },
       { status: 500 }
     )
