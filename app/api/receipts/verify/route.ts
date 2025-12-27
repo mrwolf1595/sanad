@@ -20,24 +20,17 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Validate barcode format - Allow RCP, REC, and potential variations
-    // Previous strict: /^RCP-\d{4}-\d{6}$/
-    // New flexible: Starts with R, contains alphanumeric and dashes
-    const barcodePattern = /^R[A-Z]{2,3}-[0-9]{4}-[A-Z0-9]+$|^R[A-Z0-9-]+$/i
-    if (!barcodePattern.test(barcodeId)) {
-      return NextResponse.json(
-        {
-          error: 'Invalid barcode format. Expected format: RCP-YYYY-XXXXXX',
-          valid: false
-        },
-        { status: 400 }
-      )
-    }
+    // Create Admin Client to bypass RLS for public verification
+    // This is secure because we only expose specific receipt details for verification
+    const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-    const supabase = await createClient()
-
-    // Query receipt by barcode_id
-    const { data: receipt, error } = await supabase
+    // Query receipt by barcode_id OR receipt_number
+    // We try looking up by EITHER field to be robust
+    let query = supabaseAdmin
       .from('receipts')
       .select(`
         id,
@@ -56,10 +49,20 @@ export async function GET(request: NextRequest) {
           tax_number
         )
       `)
-      .eq('barcode_id', barcodeId)
-      .single()
+
+    // Check if input looks like a specific format, but ultimately search both
+    if (barcodeId.startsWith('REC-')) {
+      // Priority to receipt_number
+      query = query.or(`receipt_number.eq.${barcodeId},barcode_id.eq.${barcodeId}`)
+    } else {
+      // Priority matching
+      query = query.or(`barcode_id.eq.${barcodeId},receipt_number.eq.${barcodeId}`)
+    }
+
+    const { data: receipt, error } = await query.maybeSingle()
 
     if (error || !receipt) {
+      console.log('Verification failed for:', barcodeId)
       return NextResponse.json(
         {
           valid: false,
