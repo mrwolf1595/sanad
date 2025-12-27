@@ -279,12 +279,18 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Uint8Array>
   if (receipt.barcode_id) {
     try {
       // Prepare QR code content with receipt details
-      const qrData = [
-        `رقم السند: ${receipt.receipt_number}`,
-        `التاريخ: ${formatArabicDate(receipt.date)}`,
-        `المبلغ: ${receipt.amount.toFixed(2)}`,
-        receipt.receipt_type === 'receipt' ? `من: ${receipt.recipient_name}` : `إلى: ${receipt.recipient_name}`,
-      ].join('\n')
+      // Prepare QR code content - URL for verification
+      let appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+      if (!appUrl && process.env.VERCEL_URL) {
+        appUrl = `https://${process.env.VERCEL_URL}`;
+      }
+
+      if (!appUrl) {
+        appUrl = 'http://localhost:3000';
+      }
+
+      const qrData = `${appUrl}/verify?barcode_id=${receipt.barcode_id}`
 
       const barcodeBuffer = await generateQRCode({
         text: qrData,
